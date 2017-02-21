@@ -12,21 +12,10 @@ def assign_value(values, box, value):
         assignments.append(values.copy())
     return values
 
-def naked_twins(values):
-    """Eliminate values using the naked twins strategy.
-    Args:
-        values(dict): a dictionary of the form {'box_name': '123456789', ...}
-
-    Returns:
-        the values dictionary with the naked twins eliminated from peers.
-    """
-
-    # Find all instances of naked twins
-    # Eliminate the naked twins as possibilities for their peers
-
 def cross(A, B):
     "Cross product of elements in A and elements in B."
     return [s+t for s in A for t in B]
+
 
 boxes = cross(rows, cols)
 
@@ -38,6 +27,31 @@ diag_units = [['A1','B2','C3','D4','E5','F6','G7','H8','I9'],['A9','B8','C7','D6
 unitlist = row_units + column_units + square_units + diag_units
 units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
 peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
+
+
+def naked_twins(values):
+    """Eliminate values using the naked twins strategy.
+    Args:
+        values(dict): a dictionary of the form {'box_name': '123456789', ...}
+
+    Returns:
+        the values dictionary with the naked twins eliminated from peers.
+    """
+
+    # Find all instances of naked twins
+    for unit in unitlist:
+        new_naked_twins_list = [(unit[s], unit[t]) for s in range(0, len(unit)) for t in range(s+1, len(unit)) if values[unit[s]] == values[unit[t]] and len(values[unit[s]]) == 2]
+        for new_naked_twins in new_naked_twins_list:
+            digits_to_delete = values[new_naked_twins[0]]
+            for box in unit:
+            	if box not in new_naked_twins:
+                    update_digits = [d for d in values[box] if d not in digits_to_delete]
+                    values[box] = ''.join(update_digits)
+
+        #print(list_naked_twins)
+    return values
+    # Eliminate the naked twins as possibilities for their peers
+
 
 def grid_values(grid):
     """
