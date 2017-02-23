@@ -46,9 +46,7 @@ def naked_twins(values):
             for box in unit:
             	if box not in new_naked_twins:
                     update_digits = [d for d in values[box] if d not in digits_to_delete]
-                    values[box] = ''.join(update_digits)
-
-        #print(list_naked_twins)
+                    values = assign_value(values, box, ''.join(update_digits))
     return values
     # Eliminate the naked twins as possibilities for their peers
 
@@ -97,7 +95,7 @@ def eliminate(values):
     for box in solved_values:
         digit = values[box]
         for peer in peers[box]:
-            values[peer] = values[peer].replace(digit,'')
+            values = assign_value(values, peer, values[peer].replace(digit,''))
     return values
 
 def only_choice(values):
@@ -110,7 +108,7 @@ def only_choice(values):
         for digit in '123456789':
             dplaces = [box for box in unit if digit in values[box]]
             if len(dplaces) == 1:
-                values[dplaces[0]] = digit
+                values = assign_value(values, dplaces[0], digit)
     return values
 
 def reduce_puzzle(values):
@@ -146,7 +144,7 @@ def search(values):
     # Now use recurrence to solve each one of the resulting sudokus, and 
     for value in values[s]:
         new_sudoku = values.copy()
-        new_sudoku[s] = value
+        new_sudoku = assign_value(new_sudoku, s, value)
         attempt = search(new_sudoku)
         if attempt:
             return attempt
