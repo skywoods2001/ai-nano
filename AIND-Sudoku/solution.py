@@ -40,15 +40,17 @@ def naked_twins(values):
 
     # Find all instances of naked twins
     for unit in unitlist:
+    	# For each units, find the naked twins
         new_naked_twins_list = [(unit[s], unit[t]) for s in range(0, len(unit)) for t in range(s+1, len(unit)) if values[unit[s]] == values[unit[t]] and len(values[unit[s]]) == 2]
         for new_naked_twins in new_naked_twins_list:
+        	# numbers appear in each pair of naked twins
             digits_to_delete = values[new_naked_twins[0]]
             for box in unit:
+            	# Eliminating numbers in other boxes in the same unit that also appear in the naked naked twins
             	if box not in new_naked_twins:
                     update_digits = [d for d in values[box] if d not in digits_to_delete]
                     values = assign_value(values, box, ''.join(update_digits))
     return values
-    # Eliminate the naked twins as possibilities for their peers
 
 
 def grid_values(grid):
