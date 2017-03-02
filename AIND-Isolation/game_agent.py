@@ -123,13 +123,19 @@ class CustomPlayer:
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
+        if not legal_moves:
+            return (-1, -1)
 
         try:
             # The search method call (alpha beta or minimax) should happen in
             # here in order to avoid timeout. The try/except block will
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
-            pass
+
+
+            if self.method == 'minimax':
+                _, move= self.minimax(game, self.search_depth)
+                return move
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
@@ -173,7 +179,28 @@ class CustomPlayer:
             raise Timeout()
 
         # TODO: finish this function!
-        raise NotImplementedError
+        legal_moves = game.get_legal_moves()
+        if not legal_moves or depth == 0:
+            return self.score(game, self), (-1, -1)
+
+        if maximizing_player:            
+            best_score = float("-inf")
+            for move in legal_moves:
+                new_game = game.forecast_move(move)
+                new_score, _ = self.minimax(new_game, depth - 1, not maximizing_player)
+                if new_score > best_score:
+                    best_score = new_score
+                    best_move = move  
+        else:
+            best_score = float("inf")
+            for move in legal_moves:
+                new_game = game.forecast_move(move)
+                new_score, _ = self.minimax(new_game, depth - 1, not maximizing_player)
+                if new_score < best_score:
+                    best_score = new_score
+                    best_move = move
+        
+        return best_score, best_move
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
