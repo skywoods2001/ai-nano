@@ -9,6 +9,7 @@ relative strength using tournament.py and include the results in your report.
 import random
 
 
+
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
@@ -37,8 +38,114 @@ def custom_score(game, player):
         The heuristic value of the current game state to the specified player.
     """
 
-    # TODO: finish this function!
-    raise NotImplementedError
+    return h_diffmove_over_numblank(game, player)
+
+def h_diffmove_over_numblank(game, player):
+    """The heuristic function put different weighting on the move differences
+    between the player and the opponent. A higher weighting is given when the
+    game approaches to the end.
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    num_blank_space = len(game.get_blank_spaces())
+
+    return float(own_moves -  opp_moves) / (num_blank_space + 1)
+
+def h_diffmove_plus_diff2center(game, player):
+    """The heuristic function first calculates the distance between the current
+    position to the center of the board for each player. The distance difference
+    is then added to the #move difference. A player closer to the center of the
+    game board may have a better chance of larger number of future moves.
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+
+    center_pos = (int(game.height/2), int(game.width/2))
+
+    own_cur_pos = game.get_player_location(player)
+    own_dist_to_center = abs(own_cur_pos[0] - center_pos[0]) + abs(own_cur_pos[1] - center_pos[1])
+    opp_cur_pos = game.get_player_location(game.get_opponent(player))
+    opp_dist_to_center = abs(opp_cur_pos[0] - center_pos[0]) + abs(opp_cur_pos[1] - center_pos[1])
+
+    return float(own_moves - opp_moves) + float(opp_dist_to_center - own_dist_to_center)
+
+def h_corner_less_aggressive(game, player):
+    """The heuristic function specifies different strategy for users at the
+    edges of the board. In this case, the user becomes less aggressive in
+    trapping its opponent. Instead, it focuses more on the number of own moves
+    in the future.
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    own_cur_pos = game.get_player_location(player)
+
+    if own_cur_pos[0] == 0 or own_cur_pos[1] == 0 or own_cur_pos[0] == game.height - 1 or own_cur_pos[1] == game.width - 1:
+        return float(own_moves - opp_moves)
+
+    return float(own_moves - 2 * opp_moves)
 
 
 class CustomPlayer:
@@ -132,17 +239,37 @@ class CustomPlayer:
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
 
-
             if self.method == 'minimax':
-                _, move= self.minimax(game, self.search_depth)
-                return move
+
+                if self.iterative:
+                    depth = 1
+                    while (1):
+                        _, move= self.minimax(game, depth)
+                        depth += 1
+                else:
+                    _, move= self.minimax(game, self.search_depth)
+                    return move
+                
+            if self.method == 'alphabeta':
+
+                if self.iterative:
+                    depth = 1
+                    while (1):
+                        _, move= self.alphabeta(game, depth)
+                        depth += 1
+                else:
+                    _, move= self.alphabeta(game, self.search_depth)
+                    return move
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
-            pass
+            try:
+                return move
+            except:
+                return legal_moves[0]
 
         # Return the best move from the last completed search iteration
-        raise NotImplementedError
+        return move
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -180,22 +307,26 @@ class CustomPlayer:
 
         # TODO: finish this function!
         legal_moves = game.get_legal_moves()
+        best_move = (-1, -1)
+        # no legal moves or cannot search deeper
         if not legal_moves or depth == 0:
-            return self.score(game, self), (-1, -1)
+            return self.score(game, self), best_move
 
-        if maximizing_player:            
+        if maximizing_player:
             best_score = float("-inf")
             for move in legal_moves:
                 new_game = game.forecast_move(move)
                 new_score, _ = self.minimax(new_game, depth - 1, not maximizing_player)
+                # updating the best move
                 if new_score > best_score:
                     best_score = new_score
-                    best_move = move  
-        else:
+                    best_move = move
+        else: # minimizing player
             best_score = float("inf")
             for move in legal_moves:
                 new_game = game.forecast_move(move)
                 new_score, _ = self.minimax(new_game, depth - 1, not maximizing_player)
+                # updating the best move
                 if new_score < best_score:
                     best_score = new_score
                     best_move = move
@@ -243,5 +374,37 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        legal_moves = game.get_legal_moves()
+        best_move = (-1, -1)
+        # no legal moves or cannot search deeper
+        if not legal_moves or depth == 0:
+            return self.score(game, self), best_move
+
+        if maximizing_player:
+            best_score = float("-inf")
+            for move in legal_moves:
+                new_game = game.forecast_move(move)
+                new_score, _ = self.alphabeta(new_game, depth - 1, alpha, beta, not maximizing_player)
+                # updating the best move
+                if new_score > best_score:
+                    best_score = new_score
+                    best_move = move
+                # pruning the subtree
+                if best_score >= beta:
+                    return best_score, best_move
+                alpha = max(alpha, best_score)
+        else: # minimizing player
+            best_score = float("inf")
+            for move in legal_moves:
+                new_game = game.forecast_move(move)
+                new_score, _ = self.alphabeta(new_game, depth - 1, alpha, beta, not maximizing_player)
+                # updating the best move
+                if new_score < best_score:
+                    best_score = new_score
+                    best_move = move
+                # pruning the subtree
+                if best_score <= alpha:
+                    return best_score, best_move
+                beta = min(beta, best_score)
+        
+        return best_score, best_move
